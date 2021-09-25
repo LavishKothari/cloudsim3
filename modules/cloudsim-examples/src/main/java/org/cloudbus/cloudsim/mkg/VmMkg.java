@@ -28,6 +28,14 @@ public class VmMkg extends Vm {
         submittedCloudlets = new ArrayList<Cloudlet>();
     }
 
+    /*
+     * check if the folloing members are worth declaring here:
+     * cpuLoad
+     * diskUtilization
+     * memoryUtilization
+     * networkInstability;
+     * */
+
     /**
      * Checks if is active
      *
@@ -48,7 +56,7 @@ public class VmMkg extends Vm {
      */
     public void setVmStatus(boolean status) {
         if (!status) {
-            Log.printLine("------------------\nFAULT INJECTION\n------------------");
+            Log.printLine("------------------\nFAULT INJECTION IN VM\n------------------");
             Log.printLine(CloudSim.clock() + ":Setting Vm#" + getId() + " status to false");
             if (CloudSim.clock() > 0.2) {
                 FailureParameters.FALT_INJECTION_TIME = CloudSim.clock();

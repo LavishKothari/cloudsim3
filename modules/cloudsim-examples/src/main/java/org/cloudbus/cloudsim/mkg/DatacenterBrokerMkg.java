@@ -785,7 +785,7 @@ public class DatacenterBrokerMkg extends SimEntity {
                  * Time of Failure to be kept random
                  */
                 Random r = new Random();
-                delayOfFailure = (double) r.nextInt(300);
+                delayOfFailure = r.nextInt(300);
                 break;
         }
 
