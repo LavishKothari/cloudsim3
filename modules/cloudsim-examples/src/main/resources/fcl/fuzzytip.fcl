@@ -1,0 +1,139 @@
+//fuzzy cpu memory problem
+// java -jar logic-app.jar --input-file input.csv --logic-file fuzzytip.fcl --output-file output.csv --output-variable risk --output-rule-block No1 
+// java -jar jFuzzyLogic.jar -e fuzzytip.fcl 10 10 10 3
+FUNCTION_BLOCK riskper
+
+VAR_INPUT
+    cpu : REAL;
+    memory : REAL;
+	disk : REAL;
+    network : REAL;
+END_VAR
+
+VAR_OUTPUT
+    risk : REAL;
+END_VAR
+
+FUZZIFY cpu
+     TERM high :=  (82.0, 0.0) (90.0, 1.0) (100.0, 1.0) ;
+    TERM medium :=  (30.0, 0.0) (50.0, 1.0) (70.0, 1.0) (90.0, 0.0) ;
+    TERM low :=  (0.0, 0.0) (20.0, 1.0) (40.0, 0.0) ;
+    
+END_FUZZIFY
+
+FUZZIFY memory
+    TERM high :=  (70.0, 0.0) (90.0, 1.0) (100.0, 1.0) ;
+    TERM medium :=  (30.0, 0.0) (50.0, 1.0) (70.0, 1.0) (80.0, 0.0) ;
+    TERM low :=  (0.0, 0.0) (20.0, 1.0) (40.0, 0.0) ;
+END_FUZZIFY
+
+FUZZIFY disk
+   	TERM high :=  (60.0, 0.0) (90.0, 1.0) (100.0, 1.0) ;
+    TERM medium :=  (10.0, 0.0) (40.0, 1.0) (60.0, 1.0) (90.0, 0.0) ;
+    TERM low :=  (0.0, 0.0) (20.0, 1.0) (40.0, 0.0) ;
+END_FUZZIFY
+
+FUZZIFY network
+   TERM high :=  (60.0, 0.0) (90.0, 1.0) (100.0, 1.0) ;
+    TERM medium :=  (10.0, 0.0) (40.0, 1.0) (60.0, 1.0) (90.0, 0.0) ;
+    TERM low :=  (0.0, 0.0) (20.0, 1.0) (40.0, 0.0) ;
+END_FUZZIFY
+
+DEFUZZIFY risk
+    TERM low :=  (0.0, 0.0) (20.0, 1.0)(40.0, 0.0) ;
+	TERM medium :=  (30.0, 0.0) (55.0, 1.0) (90.0, 0.0) ;
+    TERM high :=  (80.0, 0.0) (90.0, 1.0) (100.0, 0.0) ;
+    METHOD : COG;
+    DEFAULT := 0.0;
+    RANGE := (1.0 .. 100.0);
+END_DEFUZZIFY
+
+RULEBLOCK No1
+    ACT : MIN;
+    ACCU : MAX;
+    AND : MIN; 
+
+RULE 1: IF (cpu IS low) OR (memory IS low) OR  (disk IS low) OR  (network IS low) THEN risk IS low;
+RULE 2: IF (cpu IS low) OR (memory IS low) OR  (disk IS low) OR  (network IS medium) THEN risk IS low;
+RULE 3: IF (cpu IS low) OR (memory IS low) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 4: IF (cpu IS low) OR (memory IS low) OR  (disk IS medium) OR  (network IS low) THEN risk IS low;
+RULE 5: IF (cpu IS low) OR (memory IS low) OR  (disk IS medium) OR  (network IS medium) THEN risk IS medium;
+RULE 6: IF (cpu IS low) OR (memory IS low) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 7: IF (cpu IS low) OR (memory IS low) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 8: IF (cpu IS low) OR (memory IS low) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 9: IF (cpu IS low) OR (memory IS low) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 10: IF (cpu IS low) OR (memory IS medium) OR  (disk IS low) OR  (network IS low) THEN risk IS medium;
+RULE 11: IF (cpu IS low) OR (memory IS medium) OR  (disk IS low) OR  (network IS medium) THEN risk IS medium;
+RULE 12: IF (cpu IS low) OR (memory IS medium) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 13: IF (cpu IS low) OR (memory IS medium) OR  (disk IS medium) OR  (network IS low) THEN risk IS medium;
+RULE 14: IF (cpu IS low) OR (memory IS medium) OR  (disk IS medium) OR  (network IS medium) THEN risk IS medium;
+RULE 15: IF (cpu IS low) OR (memory IS medium) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 16: IF (cpu IS low) OR (memory IS medium) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 17: IF (cpu IS low) OR (memory IS medium) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 18: IF (cpu IS low) OR (memory IS medium) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 19: IF (cpu IS low) OR (memory IS high) OR  (disk IS low) OR  (network IS low) THEN risk IS high;
+RULE 20: IF (cpu IS low) OR (memory IS high) OR  (disk IS low) OR  (network IS medium) THEN risk IS high;
+RULE 21: IF (cpu IS low) OR (memory IS high) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 22: IF (cpu IS low) OR (memory IS high) OR  (disk IS medium) OR  (network IS low) THEN risk IS high;
+RULE 23: IF (cpu IS low) OR (memory IS high) OR  (disk IS medium) OR  (network IS medium) THEN risk IS high;
+RULE 24: IF (cpu IS low) OR (memory IS high) OR  (disk IS medium) OR  (network IS low) THEN risk IS high;
+RULE 25: IF (cpu IS low) OR (memory IS high) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 26: IF (cpu IS low) OR (memory IS high) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 27: IF (cpu IS low) OR (memory IS high) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 28: IF (cpu IS medium) OR (memory IS low) OR  (disk IS low) OR  (network IS medium) THEN risk IS medium;
+RULE 29: IF (cpu IS medium) OR (memory IS low) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 30: IF (cpu IS medium) OR (memory IS low) OR  (disk IS low) OR  (network IS low) THEN risk IS medium;
+RULE 31: IF (cpu IS medium) OR (memory IS low) OR  (disk IS medium) OR  (network IS medium) THEN risk IS medium;
+RULE 32: IF (cpu IS medium) OR (memory IS low) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 33: IF (cpu IS medium) OR (memory IS low) OR  (disk IS medium) OR  (network IS low) THEN risk IS medium;
+RULE 34: IF (cpu IS medium) OR (memory IS low) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 35: IF (cpu IS medium) OR (memory IS low) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 36: IF (cpu IS medium) OR (memory IS low) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 37: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS low) OR  (network IS medium) THEN risk IS medium;
+RULE 38: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 39: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS low) OR  (network IS low) THEN risk IS medium;
+RULE 40: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS medium) OR  (network IS medium) THEN risk IS medium;
+RULE 41: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 42: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS medium) OR  (network IS low) THEN risk IS medium;
+RULE 43: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 44: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 45: IF (cpu IS medium) OR (memory IS medium) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 46: IF (cpu IS medium) OR (memory IS high) OR  (disk IS low) OR  (network IS medium) THEN risk IS high;
+RULE 47: IF (cpu IS medium) OR (memory IS high) OR  (disk IS low) OR  (network IS low) THEN risk IS high;
+RULE 48: IF (cpu IS medium) OR (memory IS high) OR  (disk IS low) OR  (network IS medium) THEN risk IS high;
+RULE 49: IF (cpu IS medium) OR (memory IS high) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 50: IF (cpu IS medium) OR (memory IS high) OR  (disk IS medium) OR  (network IS low) THEN risk IS high;
+RULE 51: IF (cpu IS medium) OR (memory IS high) OR  (disk IS medium) OR  (network IS medium) THEN risk IS high;
+RULE 52: IF (cpu IS medium) OR (memory IS high) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 53: IF (cpu IS medium) OR (memory IS high) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 54: IF (cpu IS medium) OR (memory IS high) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 55: IF (cpu IS high) OR (memory IS low) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 56: IF (cpu IS high) OR (memory IS low) OR  (disk IS low) OR  (network IS low) THEN risk IS high;
+RULE 57: IF (cpu IS high) OR (memory IS low) OR  (disk IS low) OR  (network IS medium) THEN risk IS high;
+RULE 58: IF (cpu IS high) OR (memory IS low) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 59: IF (cpu IS high) OR (memory IS low) OR  (disk IS medium) OR  (network IS low) THEN risk IS high;
+RULE 60: IF (cpu IS high) OR (memory IS low) OR  (disk IS medium) OR  (network IS medium) THEN risk IS high;
+RULE 61: IF (cpu IS high) OR (memory IS low) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 62: IF (cpu IS high) OR (memory IS low) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 63: IF (cpu IS high) OR (memory IS low) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 64: IF (cpu IS high) OR (memory IS medium) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 65: IF (cpu IS high) OR (memory IS medium) OR  (disk IS low) OR  (network IS low) THEN risk IS high;
+RULE 66: IF (cpu IS high) OR (memory IS medium) OR  (disk IS low) OR  (network IS medium) THEN risk IS high;
+RULE 67: IF (cpu IS high) OR (memory IS medium) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 68: IF (cpu IS high) OR (memory IS medium) OR  (disk IS medium) OR  (network IS low) THEN risk IS high;
+RULE 69: IF (cpu IS high) OR (memory IS medium) OR  (disk IS medium) OR  (network IS medium) THEN risk IS high;
+RULE 70: IF (cpu IS high) OR (memory IS medium) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 71: IF (cpu IS high) OR (memory IS medium) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 72: IF (cpu IS high) OR (memory IS medium) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+RULE 73: IF (cpu IS high) OR (memory IS high) OR  (disk IS low) OR  (network IS low) THEN risk IS high;
+RULE 74: IF (cpu IS high) OR (memory IS high) OR  (disk IS low) OR  (network IS medium) THEN risk IS high;
+RULE 75: IF (cpu IS high) OR (memory IS high) OR  (disk IS low) OR  (network IS high) THEN risk IS high;
+RULE 76: IF (cpu IS high) OR (memory IS high) OR  (disk IS medium) OR  (network IS low) THEN risk IS high;
+RULE 77: IF (cpu IS high) OR (memory IS high) OR  (disk IS medium) OR  (network IS medium) THEN risk IS high;
+RULE 78: IF (cpu IS high) OR (memory IS high) OR  (disk IS medium) OR  (network IS high) THEN risk IS high;
+RULE 79: IF (cpu IS high) OR (memory IS high) OR  (disk IS high) OR  (network IS low) THEN risk IS high;
+RULE 80: IF (cpu IS high) OR (memory IS high) OR  (disk IS high) OR  (network IS medium) THEN risk IS high;
+RULE 81: IF (cpu IS high) OR (memory IS high) OR  (disk IS high) OR  (network IS high) THEN risk IS high;
+
+	END_RULEBLOCK
+END_FUNCTION_BLOCK

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CloudsimAtul Reports</title>
+
+    <!-- CSS Files -->
+    <link href="assets/css/bootstrap.css" rel="stylesheet">
+    <link href="assets/css/dashboard.css" rel="stylesheet">
+
+    <!-- Scripts -->
+	<script src="assets/js/jquery-2.2.3.min.js"></script>
+    <script src="assets/js/bootstrap.js"></script>
+	<script src="assets/js/myscript1.js"></script>
+	<script src="assets/js/holder.min.js"></script>
+	<script src="assets/js/highcharts.js"></script>
+	<script src="assets/js/exporting.js"></script>
+    
+  </head>
+  <body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">CloudsimAtul Report</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="#">Settings</a></li>
+            <li><a href="#">Profile</a></li>
+            <li><a href="#">Help</a></li>
+          </ul>
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar" id="leftNavBar">
+            <li class="left-side-panel active" id="overviewli"><a href="#">Overview </a></li>
+            <li class="left-side-panel" id="reportsli"><a href="#">Reports</a></li>
+            <li class="left-side-panel"><a href="#">Logs</a></li>
+          </ul>
+        </div>
+
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" id="overview">
+          <h1 class="page-header">Overview</h1>
+			
+          <div class="row placeholders">
+			<!-- OVERVIEW HERE -->
+            
+          </div>
+        </div>
+
+		<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" id="reports">
+          <h1 class="page-header">Cloudlet Reports</h1>
+		  <div class="panel panel-default">
+  			<div class="panel-body">
+				<div class="row">
+					<div class="col-sm-6">
+                    	<h4>Choose Cloudlet</h4>
+					</div>
+					<div class="col-sm-6">
+						<div class="dropdown">
+  							<button id="cloudletNum" class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+    							Dropdown <span class="caret"></span>
+  							</button>
+  							<ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+								<!-- CLOUDLET LIST HERE -->
+    							<li class="cloudlet-id"><a href="#">Choose Cloudlet</a></li>
+  							</ul>
+						</div>
+ 					</div>
+		  		</div>
+			</div>
+		  </div>
+          <div class="row placeholders">
+			
+			<!-- CLOUDLET GRAPH LIST HERE -->
+          	
+		  </div>
+
+		  <h2 class="sub-header cloudlet-log-header">Cloudlet X Logs</h2>
+		  <!-- CLOUDLET LOG TABLE HERE -->
+      
+
+
+	</div>
+    </div>
+
+    
+  </body>	
+</html>
