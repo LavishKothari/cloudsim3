@@ -10,33 +10,17 @@
 
 package org.cloudbus.cloudsim.mkg;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
-
-import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.DatacenterCharacteristics;
-import org.cloudbus.cloudsim.Host;
-import org.cloudbus.cloudsim.Log;
-import org.cloudbus.cloudsim.NetworkTopology;
-import org.cloudbus.cloudsim.Pe;
-import org.cloudbus.cloudsim.Storage;
-import org.cloudbus.cloudsim.UtilizationModel;
-import org.cloudbus.cloudsim.UtilizationModelFull;
-import org.cloudbus.cloudsim.VmAllocationPolicySimple;
-import org.cloudbus.cloudsim.VmSchedulerTimeShared;
+import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudbus.cloudsim.core.SimEntity;
-import org.cloudbus.cloudsim.network.TopologicalGraph;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Simulation with x VMs and y CLs. One random VM is failed before any
@@ -44,12 +28,7 @@ import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
  */
 public class CloudSimExampleMkg4CHECK {
 
-    /**
-     * The cloudlet list.
-     */
-    private static List<Cloudlet> cloudletList;
     static List<VmMkg> toFail;
-
     static List CoreSwitchList = new ArrayList();
     static List AggSwitchList = new ArrayList();
     static List EdgeSwitchList = new ArrayList();
@@ -58,7 +37,10 @@ public class CloudSimExampleMkg4CHECK {
     static List pod2 = new ArrayList();
     static List pod3 = new ArrayList();
     static List pod4 = new ArrayList();
-
+    /**
+     * The cloudlet list.
+     */
+    private static List<Cloudlet> cloudletList;
     /**
      * The vmlist.
      */

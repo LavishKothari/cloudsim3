@@ -1,6 +1,5 @@
 package org.cloudbus.cloudsim.mkg.fuzzylogic;
 
- 
 
 public class InputVariableData {
 

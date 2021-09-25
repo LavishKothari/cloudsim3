@@ -1,34 +1,17 @@
 package org.cloudbus.cloudsim.mkg;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Scanner;
-
-import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.Datacenter;
-import org.cloudbus.cloudsim.DatacenterCharacteristics;
-import org.cloudbus.cloudsim.Host;
-import org.cloudbus.cloudsim.Log;
-import org.cloudbus.cloudsim.Storage;
-import org.cloudbus.cloudsim.Vm;
-import org.cloudbus.cloudsim.VmAllocationPolicy;
+import net.sourceforge.jFuzzyLogic.FIS;
+import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEvent;
 import org.cloudbus.cloudsim.core.predicates.PredicateType;
 
-import net.sourceforge.jFuzzyLogic.FIS;
+import java.io.InputStream;
+import java.util.*;
 
 public class DatacenterMkg extends Datacenter {
 
-    /**
-     * List of VMs to Fail
-     */
-    List<VmMkg> toFail = new ArrayList<VmMkg>();
     static int transmissionoverhead = 1;
     static long RFF_result = 0;
     static long BF_result = 0;
@@ -37,33 +20,58 @@ public class DatacenterMkg extends Datacenter {
     static long core_sw_frc = 0;
     static long agg_sw_frc = 0;
     static long edg_sw_frc = 0;
-
-
+    public List<ResCloudletMkg> suspect1 = new ArrayList<ResCloudletMkg>();
+    public List<ResCloudletMkg> suspect2 = new ArrayList<ResCloudletMkg>();
+    /**
+     * List of VMs to Fail
+     */
+    List<VmMkg> toFail = new ArrayList<VmMkg>();
     /**
      * List of failed Vms as detected by the monitoring module
      */
     List<Vm> failedVMs = new ArrayList<Vm>();
-
-    /**
-     * Map of Cloudlets to their Remaining Length. Used by Detection algorithm 2
-     */
-    private Map<Integer, Long> clToRemainingLength = new HashMap<Integer, Long>();
-
     /**
      * List failed cloudlets as detected by detection algorithm 2
      */
     List<Cloudlet> failedDetectedCloudlets = new ArrayList<Cloudlet>();
-
     /**
      * double variable to keep track of last time a monitor was called.
      * Reduces redundant calls at same time
      */
     double lastMonitorRunTime = 0.0;
-
     /**
      * Variable to keep track of number of times a monitor was called
      */
     int numberOfTimesMonitorWasCalled = 0;
+    /**
+     * Delay at which fault is to be injected
+     */
+    double delayOfFailure = 0.0;
+    /**
+     * Failure Detection Algorithm 2
+     * It detects failure by keeping a track of each cloudlet's progress.
+     * It checks whether a task has become stagnant or not.
+     * It is called at each ConstsMkg.SCHEDULING_INTERVAL
+     *
+     * @return
+     */
+    Random random = new Random();
+    List<Vm> allVms = getVmList();
+    int RFFvmToScheduleOn;
+    int BFvmToScheduleOn;
+    int FFvmToScheduleOn;
+    /**
+     * Map of Cloudlets to their Remaining Length. Used by Detection algorithm 2
+     */
+    private Map<Integer, Long> clToRemainingLength = new HashMap<Integer, Long>();
+
+    public DatacenterMkg(String name,
+                         DatacenterCharacteristics characteristics,
+                         VmAllocationPolicy vmAllocationPolicy, List<Storage> storageList,
+                         double schedulingInterval) throws Exception {
+        super(name, characteristics, vmAllocationPolicy, storageList,
+                schedulingInterval);
+    }
 
     /**
      * @return last time the monitor was called
@@ -80,20 +88,6 @@ public class DatacenterMkg extends Datacenter {
     public void setLastMonitorRunTime(double t) {
         this.lastMonitorRunTime = t;
     }
-
-    public DatacenterMkg(String name,
-                         DatacenterCharacteristics characteristics,
-                         VmAllocationPolicy vmAllocationPolicy, List<Storage> storageList,
-                         double schedulingInterval) throws Exception {
-        super(name, characteristics, vmAllocationPolicy, storageList,
-                schedulingInterval);
-    }
-
-    /**
-     * Delay at which fault is to be injected
-     */
-    double delayOfFailure = 0.0;
-
 
     /**
      * Processes events or services that are available for this PowerDatacenter.
@@ -254,7 +248,6 @@ public class DatacenterMkg extends Datacenter {
                 break;
         }
     }
-
 
     /**
      * Processes a Cloudlet based on the event type.
@@ -623,23 +616,6 @@ public class DatacenterMkg extends Datacenter {
             FailureParameters.NO_OF_MONITOR_CALLS = numberOfTimesMonitorWasCalled;
         }
     }
-
-    public List<ResCloudletMkg> suspect1 = new ArrayList<ResCloudletMkg>();
-    public List<ResCloudletMkg> suspect2 = new ArrayList<ResCloudletMkg>();
-    /**
-     * Failure Detection Algorithm 2
-     * It detects failure by keeping a track of each cloudlet's progress.
-     * It checks whether a task has become stagnant or not.
-     * It is called at each ConstsMkg.SCHEDULING_INTERVAL
-     *
-     * @return
-     */
-    Random random = new Random();
-    List<Vm> allVms = getVmList();
-
-    int RFFvmToScheduleOn;
-    int BFvmToScheduleOn;
-    int FFvmToScheduleOn;
 
     private int RFF() {
         int RFFloadOnVm = (int) Double.MAX_VALUE;

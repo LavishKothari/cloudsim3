@@ -20,45 +20,57 @@ public class HostMkg extends Host {
      * @param vmScheduler    the vm scheduler
      */
 
-    /** The id of the host. */
-    private int id;
-
-    /** The storage capacity. */
-    private long storage;
-
-    /** The ram provisioner. */
-    private RamProvisioner ramProvisioner;
-
-    /** The bw provisioner. */
-    private BwProvisioner bwProvisioner;
-
-    /** The allocation policy for scheduling VM execution. */
-    private VmScheduler vmScheduler;
-
-    /** The list of VMs assigned to the host. */
+    /**
+     * The list of VMs assigned to the host.
+     */
     private final List<? extends Vm> vmList = new ArrayList<Vm>();
-
-    /** The Processing Elements (PEs) of the host, that
-     * represent the CPU cores of it, and thus, its processing capacity. */
-    private List<? extends Pe> peList;
-
-    /** Tells whether this host is working properly or has failed. */
-    private boolean failed;
-
-    /** The VMs migrating in. */
+    /**
+     * The VMs migrating in.
+     */
     private final List<Vm> vmsMigratingIn = new ArrayList<Vm>();
-
-    /** The datacenter where the host is placed. */
+    /**
+     * The id of the host.
+     */
+    private int id;
+    /**
+     * The storage capacity.
+     */
+    private long storage;
+    /**
+     * The ram provisioner.
+     */
+    private RamProvisioner ramProvisioner;
+    /**
+     * The bw provisioner.
+     */
+    private BwProvisioner bwProvisioner;
+    /**
+     * The allocation policy for scheduling VM execution.
+     */
+    private VmScheduler vmScheduler;
+    /**
+     * The Processing Elements (PEs) of the host, that
+     * represent the CPU cores of it, and thus, its processing capacity.
+     */
+    private List<? extends Pe> peList;
+    /**
+     * Tells whether this host is working properly or has failed.
+     */
+    private boolean failed;
+    /**
+     * The datacenter where the host is placed.
+     */
     private Datacenter datacenter;
+
     public HostMkg(int id, RamProvisioner ramProvisioner, BwProvisioner bwProvisioner, long storage, List<? extends Pe> peList, VmScheduler vmScheduler) {
         super(id, ramProvisioner, bwProvisioner, storage, peList, vmScheduler);
     }
 
     public void setHostStatus(boolean status) {
-        if(status == false){
+        if (status == false) {
             Log.printLine("------------------\nFAULT INJECTION\n------------------");
-            Log.printLine(CloudSim.clock()+":Setting Pm#"+getId()+" status to false");
-            if(CloudSim.clock() > 0.2) {
+            Log.printLine(CloudSim.clock() + ":Setting Pm#" + getId() + " status to false");
+            if (CloudSim.clock() > 0.2) {
                 FailureParameters.FALT_INJECTION_TIME = CloudSim.clock();
             }
         }
