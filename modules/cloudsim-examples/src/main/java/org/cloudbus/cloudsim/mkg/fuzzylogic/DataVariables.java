@@ -1,6 +1,7 @@
 //package com.ridderware.jfuzzy.examples.mkg;
 
 package org.cloudbus.cloudsim.mkg.fuzzylogic;
+
 public class DataVariables {
 
     private String name;

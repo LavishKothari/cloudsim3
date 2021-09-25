@@ -20,7 +20,7 @@ public class FaultDetectionFuzzyLogic {
     private double THRESHOLD_FOR_ACTION = 86;
 
     private String INPUT_DATA_VARIABLE_FILE_PATH = "";
-    
+
     private void detechFaultFuzzyLogic() {
     }
 

@@ -1,9 +1,7 @@
-
 package org.cloudbus.cloudsim.mkg;
 
 import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.core.CloudSim;
-import org.cloudbus.cloudsim.core.SimEntity;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
@@ -24,12 +22,11 @@ import static java.lang.Integer.parseInt;
 public class LavishFattreeTopologyAdvance {
 
 
+    static List<VmMkg> toFail;
     /**
      * The cloudlet list.
      */
     private static List<Cloudlet> cloudletList;
-    static List<VmMkg> toFail;
-
     private static List CoreSwitchList = new ArrayList();
     private static List AggSwitchList = new ArrayList();
     private static List EdgeSwitchList = new ArrayList();
@@ -177,7 +174,7 @@ public class LavishFattreeTopologyAdvance {
             //r.generateCloudletReport();
             //Log.printLine("\n\n\n vm fail list........ = " + toFail.get(0).getId());
             Log.printLine("\n\n\n vm transmission RFF_result........ = " + DatacenterMkg.RFF_result);
-     //       Log.printLine("\n\n\n vm transmission of pakets paket_counter...... = " + SimEntity.paket_counter);
+            //       Log.printLine("\n\n\n vm transmission of pakets paket_counter...... = " + SimEntity.paket_counter);
             Log.printLine("\n\n\n  total paket size which were moved from one vm to another due to failure...... = " + DatacenterMkg.pkt_size);
 
             Log.printLine("\n\n\n  total number of times CORE SWITCH used....... = " + DatacenterMkg.core_sw_frc);
@@ -219,21 +216,20 @@ public class LavishFattreeTopologyAdvance {
             Log.printLine("Number of Times Monitor was called = " + FailureParameters.NO_OF_MONITOR_CALLS);
             Log.printLine("CloudSimExampleAtul4 finished!");
 
-            
-          //mkg code 
-			
-			{
-		 
-				FileWriter f = new FileWriter("C:\\Users\\gokhr\\Desktop\\mkg\\mkg.csv",true);
-				f.write("");
-			//	f.append("DatacenterMkg.RFF_result,DatacenterMkg.BF_result,DatacenterMkg.FF_result,FailureParameters.NO_OF_MONITOR_CALLS ,e_edg,e_aggr,e_core\n");
-		//		f.append(DatacenterMkg.RFF_result + ","+DatacenterMkg.BF_result +","+DatacenterMkg.FF_result+ ","+ FailureParameters.NO_OF_MONITOR_CALLS+"," + e_edg+","+e_aggr+","+e_core +"\n");
-				f.append(DatacenterMkg.RFF_result + ","+DatacenterMkg.BF_result +","+DatacenterMkg.FF_result+ ","+ FailureParameters.NO_OF_MONITOR_CALLS+"," + e_edg+","+e_aggr+","+e_core +","+"LAVISH"+"\n");
-						
-				f.close();
-			} 
-		 
-            
+
+            //mkg code
+
+            {
+
+                FileWriter f = new FileWriter("C:\\Users\\gokhr\\Desktop\\mkg\\mkg.csv", true);
+                f.write("");
+                //	f.append("DatacenterMkg.RFF_result,DatacenterMkg.BF_result,DatacenterMkg.FF_result,FailureParameters.NO_OF_MONITOR_CALLS ,e_edg,e_aggr,e_core\n");
+                //		f.append(DatacenterMkg.RFF_result + ","+DatacenterMkg.BF_result +","+DatacenterMkg.FF_result+ ","+ FailureParameters.NO_OF_MONITOR_CALLS+"," + e_edg+","+e_aggr+","+e_core +"\n");
+                f.append(DatacenterMkg.RFF_result + "," + DatacenterMkg.BF_result + "," + DatacenterMkg.FF_result + "," + FailureParameters.NO_OF_MONITOR_CALLS + "," + e_edg + "," + e_aggr + "," + e_core + "," + "LAVISH" + "\n");
+
+                f.close();
+            }
+
 
         } catch (Exception e) {
             e.printStackTrace();
