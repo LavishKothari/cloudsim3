@@ -9,14 +9,14 @@ public class ConstsMkg {
 
     /*
      *//** Parameter to decide for creating the datacenter characteristics  *//*
-	public static final int datacentre  = ;
+	public static final int datacenter  = ;
 	*/
     /**
      * Parameter to decide whether Monitoring(Detecting) Module works or not
      */
     public static final boolean CMM_ON = true;
     /**
-     * The scheduing interval. Specify an interval at which you want logs for all cloudlets
+     * The scheduling interval. Specify an interval at which you want logs for all cloudlets
      */
     public static final double SCHEDULING_INTERVAL = 1;
     /**
