@@ -429,44 +429,34 @@ public class DatacenterMkg extends Datacenter {
         // R: for term is to allow loop at simulation start. Otherwise, one initial
         // simulation step is skipped and schedulers are not properly initialized
         if (CloudSim.clock() < 1.0 && CloudSim.clock() > getLastProcessTime()) {
-
-            //Fails Vms as specified in the Failure Parameters
-            for (int i = 0; i < toFail.size(); i++) {
-                VmMkg vm = toFail.get(i);
-                if (vm.isActive()) {
-                    send(getId(), delayOfFailure, CloudSimTagsMkg.VM_FAILING_EVENT, vm);
-                }
-            }
-
+            // Fails Vms as specified in the Failure Parameters
+            toFail.stream()
+                    .filter(VmMkg::isActive)
+                    .forEach(vm -> send(getId(), delayOfFailure, CloudSimTagsMkg.VM_FAILING_EVENT, vm));
         }
         if (CloudSim.clock() < 0.111 || CloudSim.clock() > getLastProcessTime() + CloudSim.getMinTimeBetweenEvents()) {
             List<? extends Host> list = getVmAllocationPolicy().getHostList();
             double smallerTime = Double.MAX_VALUE;
             // for each host...
-            for (int i = 0; i < list.size(); i++) {
-                Host host = list.get(i);
+            for (Host host : list) {
                 // inform VMs to update processing
                 double time = host.updateVmsProcessing(CloudSim.clock());
 
                 // TODO get VM characteristics
-
 
                 // what time do we expect that the next cloudlet will finish?
                 if (time < smallerTime) {
                     smallerTime = time;
                 }
             }
-            // gurantees a minimal interval before scheduling the event
+            // guarantees a minimal interval before scheduling the event
             if (smallerTime < CloudSim.clock() + CloudSim.getMinTimeBetweenEvents() + 0.01) {
                 smallerTime = CloudSim.clock() + CloudSim.getMinTimeBetweenEvents() + 0.01;
             }
             if (smallerTime != Double.MAX_VALUE) {
                 schedule(getId(), (smallerTime - CloudSim.clock()), CloudSimTags.VM_DATACENTER_EVENT);
-            }
 
-            //double minTime = updateCloudetProcessingWithoutSchedulingFutureEventsForce();
-            // schedules an event to the next time
-            if (smallerTime != Double.MAX_VALUE) {
+                // schedules an event to the next time
                 //CloudSim.cancelAll(getId(), new PredicateType(CloudSimTags.VM_DATACENTER_EVENT));
                 send(getId(), getSchedulingInterval(), CloudSimTags.VM_DATACENTER_EVENT);
 
@@ -476,16 +466,14 @@ public class DatacenterMkg extends Datacenter {
                         //Detection Algo 1: Monitor invoked at all MONITORING INTERVALS
                         send(getId(), ConstsMkg.MONITORING_INTERVAL, CloudSimTagsMkg.VM_MONITORING_EVENT);
                     } else if (ConstsMkg.DETECTION_ALGORITHM == 2) {
-                        //Detection Algo 1: Monitor invoked at all SCHEDULING INTERVALS
+                        // Detection Algo 1: Monitor invoked at all SCHEDULING INTERVALS
                         send(getId(), getSchedulingInterval(), CloudSimTagsMkg.VM_MONITORING_EVENT);
                     } else if (ConstsMkg.DETECTION_ALGORITHM == 3) {
-                        //Detection Algo 3: fUZZY lOGIC
-                        //send(getId(), ConstsMkg.MONITORING_INTERVAL, CloudSimTagsMkg.VM_MONITORING_EVENT);
+                        // Detection Algo 3: Fuzzy Logic
+                        // send(getId(), ConstsMkg.MONITORING_INTERVAL, CloudSimTagsMkg.VM_MONITORING_EVENT);
                         System.out.println("************* FUZZY LOGIC *************");
 
-                        for (int i = 0; i < list.size(); i++) {
-                            Host host = list.get(i);
-
+                        for (Host host : list) {
                             System.out.println("****************" + host.getRam());
                             System.out.println("****************" + host.getBw());
                             System.out.println("****************" + host.getId());
