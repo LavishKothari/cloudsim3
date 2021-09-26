@@ -28,15 +28,11 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class CloudSimExampleMkg4CHECK {
 
-    static List<VmMkg> toFail;
-    static List CoreSwitchList = new ArrayList();
-    static List AggSwitchList = new ArrayList();
-    static List EdgeSwitchList = new ArrayList();
-    static List HostListids = new ArrayList();
-    static List pod1 = new ArrayList();
-    static List pod2 = new ArrayList();
-    static List pod3 = new ArrayList();
-    static List pod4 = new ArrayList();
+    private static List<String> coreSwitchList = new ArrayList<>();
+    private static List<String> aggSwitchList = new ArrayList<>();
+    private static List<String> edgeSwitchList = new ArrayList<>();
+    private static List<String> hostListIds = new ArrayList<>();
+
     /**
      * The cloudlet list.
      */
@@ -46,9 +42,9 @@ public class CloudSimExampleMkg4CHECK {
      */
     private static List<VmMkg> vmlist;
 
-    private static List<VmMkg> createVM(int userId, int vms, int idShift) {
+    private static List<VmMkg> createVM(int userId, int vmCount, int idShift) {
         //Creates a container to store VMs. This list is passed to the broker later
-        LinkedList<VmMkg> list = new LinkedList<VmMkg>();
+        LinkedList<VmMkg> resultVmList = new LinkedList<>();
         Random random = new Random();
 
         //VM Parameters
@@ -60,37 +56,30 @@ public class CloudSimExampleMkg4CHECK {
         String vmm = "Xen"; //VMM name
 
         //create VMs
-        VmMkg[] vm = new VmMkg[vms];
-
-        int Randomdivider1 = random.nextInt(vms / 2);
-
-        //int Randomdivider2=random.nextInt(vms);
-        for (int i = 0; i < vms; i++) {
-
+        for (int i = 0; i < vmCount; ++i) {
 
             if (i == 9) {
-                mips = ThreadLocalRandom.current().nextInt(540, 620 + 1);
-                bw = ThreadLocalRandom.current().nextInt(400, 940 + 1);
+                mips = ThreadLocalRandom.current().nextInt(540, 621);
+                bw = ThreadLocalRandom.current().nextInt(400, 941);
                 System.out.println("\n\n\n ......mips value.........." + mips);
             } else if (i == 19) {
-                mips = ThreadLocalRandom.current().nextInt(720, 1000 + 1);
-                bw = ThreadLocalRandom.current().nextInt(0, 340 + 1);
-
+                mips = ThreadLocalRandom.current().nextInt(720, 1001);
+                bw = ThreadLocalRandom.current().nextInt(0, 341);
 
                 System.out.println("\n\n\n ......mips value.........." + mips);
             }
 
-            vm[i] = new VmMkg(idShift + i, userId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeSharedMkg());
-            list.add(vm[i]);
+            VmMkg currentVm = new VmMkg(idShift + i, userId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeSharedMkg());
+            resultVmList.add(currentVm);
         }
 
-        return list;
+        return resultVmList;
     }
 
 
     private static List<Cloudlet> createCloudlet(int userId, int cloudlets, int idShift) {
         // Creates a container to store Cloudlets
-        LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
+        LinkedList<Cloudlet> resultCloudletList = new LinkedList<>();
 
         //cloudlet parameters
         long length = 1000;
@@ -99,26 +88,33 @@ public class CloudSimExampleMkg4CHECK {
         int pesNumber = 1;
         UtilizationModel utilizationModel = new UtilizationModelFull();
         int lengthIncr = 300;
-        Cloudlet[] cloudlet = new Cloudlet[cloudlets];
 
-        int Randomdivider1 = ThreadLocalRandom.current().nextInt(0, cloudlets + 1);
-        int Randomdivider2 = ThreadLocalRandom.current().nextInt(0, cloudlets + 1);
+        int randomDivider1 = ThreadLocalRandom.current().nextInt(0, cloudlets + 1);
+        int randomDivider2 = ThreadLocalRandom.current().nextInt(0, cloudlets + 1);
 
         for (int i = 0; i < cloudlets; i++) {
 
-
-            if (i == Randomdivider1 || i == Randomdivider2) {
+            if (i == randomDivider1 || i == randomDivider2) {
                 length = ThreadLocalRandom.current().nextInt(500, 3000 + 1);
             }
 
-            cloudlet[i] = new Cloudlet(idShift + i, length + lengthIncr, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+            Cloudlet currentCloudlet = new Cloudlet(
+                    idShift + i,
+                    length + lengthIncr,
+                    pesNumber,
+                    fileSize,
+                    outputSize,
+                    utilizationModel,
+                    utilizationModel,
+                    utilizationModel
+            );
             // setting the owner of these Cloudlets
-            cloudlet[i].setUserId(userId);
-            list.add(cloudlet[i]);
+            currentCloudlet.setUserId(userId);
+            resultCloudletList.add(currentCloudlet);
             lengthIncr += 50;
         }
 
-        return list;
+        return resultCloudletList;
     }
 
 
@@ -133,38 +129,42 @@ public class CloudSimExampleMkg4CHECK {
         try {
             // First step: Initialize the CloudSim package. It should be called
             // before creating any entities.
-            int num_user = 1;   // number of grid users
-            Calendar calendar = Calendar.getInstance();
-            boolean trace_flag = false;  // mean trace events
+            int numUser = 1;   // number of grid users
+            boolean traceFlag = false;  // mean trace events
 
             // Initialize the CloudSim library
-            CloudSim.init(num_user, calendar, trace_flag);
+            CloudSim.init(numUser, Calendar.getInstance(), traceFlag);
 
             // Second step: Create Datacenters
             //Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
 
-
             final DatacenterMkg datacenter0 = createDatacenter("Datacenter_0");
 
 
-            //Third step: Create Broker
+            // Third step: Create Broker
             final DatacenterBrokerMkg broker = createBroker("Broker_0");
             int brokerId = broker.getId();
 
 
-            //Fourth step: Create VMs and Cloudlets and send them to broker
+            // Fourth step: Create VMs and Cloudlets and send them to broker
             vmlist = createVM(brokerId, 30, 0); //creating 5 vms
-            cloudletList = createCloudlet(brokerId, 300, 0); // creating 10 cloudlets
+            cloudletList = createCloudlet(brokerId, 300, 0); // creating 300 cloudlets
             initCSVFiles();
             broker.submitVmList(vmlist);
             broker.submitCloudletList(cloudletList);
 
 
-            /** EDIT THIS to Fail a VM before simulation starts */
+            /* EDIT THIS to Fail a VM before simulation starts */
             //failVMsBeforeSimulationStarts();
 
 
-            datacenter0.setFailureParameters(vmlist, FailureParameters.FAIL_SINGLE_VM, FailureParameters.STATIC_DELAY, 2.0, null);
+            datacenter0.setFailureParameters(
+                    vmlist,
+                    FailureParameters.FAIL_SINGLE_VM,
+                    FailureParameters.STATIC_DELAY,
+                    2.0,
+                    null
+            );
 
             // Fifth step: Starts the simulation
             CloudSim.startSimulation();
@@ -269,9 +269,8 @@ public class CloudSimExampleMkg4CHECK {
      * @throws IOException
      */
     private static void initCSVFiles() throws IOException {
-        for (int i = 0; i < cloudletList.size(); i++) {
+        for (Cloudlet cloudlet : cloudletList) {
 
-            Cloudlet cloudlet = cloudletList.get(i);
             FileWriter f = new FileWriter("Cloudlet" + cloudlet.getCloudletId() + ".csv");
             f.write("");
             f.append("ClockTick,Cloudlet ID,Status,VM ID,Remaining Cloudlet Length,Cloudlet Finished So Far,EstimatedFinishTime\n");
@@ -289,10 +288,10 @@ public class CloudSimExampleMkg4CHECK {
                 PREFIX = "10";
 
             }
-            CoreSwitchList.add(PREFIX + x);
+            coreSwitchList.add(PREFIX + x);
         }
 
-        System.out.print("\n\n\n IDS of nodes in Core Layer.........." + CoreSwitchList);
+        System.out.print("\n\n\n IDS of nodes in Core Layer.........." + coreSwitchList);
 
     }
 
@@ -304,10 +303,10 @@ public class CloudSimExampleMkg4CHECK {
                 PREFIX = "20";
 
             }
-            AggSwitchList.add(PREFIX + x);
+            aggSwitchList.add(PREFIX + x);
         }
 
-        System.out.print("\n\n\n IDS of nodes in  Agg Layer .........." + AggSwitchList);
+        System.out.print("\n\n\n IDS of nodes in  Agg Layer .........." + aggSwitchList);
 
     }
 
@@ -319,31 +318,30 @@ public class CloudSimExampleMkg4CHECK {
                 PREFIX = "30";
 
             }
-            EdgeSwitchList.add(PREFIX + x);
+            edgeSwitchList.add(PREFIX + x);
         }
 
-        System.out.print("\n\n\n IDS of nodes in  Edge Layer .........." + EdgeSwitchList);
+        System.out.print("\n\n\n IDS of nodes in  Edge Layer .........." + edgeSwitchList);
 
     }
 
-    private static List<Host> createHost(List<Host> hostList, int NUMBER) {
+    private static List<Host> createHost(List<Host> hostList, int hostCount) {
         // 2. A Machine contains one or more PEs or CPUs/Cores.
         // In this example, it will have only one core.
-        List<Pe> peList = new ArrayList<Pe>();
+        List<Pe> peList = new ArrayList<>();
 
         int mips = 3720;
 
         // 3. Create PEs and add these into a list.
         peList.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
-        int hostId;
-        // 4. Create Host with its id and list of PEs and add them to the list of
-        // machines
+
+        // 4. Create Host with its id and list of PEs and add them to the list of machines
         int ram = 2048; // host memory (MB)
         long storage = 1000000; // host storage
         int bw = 10000;
 
         System.out.print("Create Host Layer..........");
-        for (int x = 1; x <= NUMBER; x++) {
+        for (int x = 1; x <= hostCount; x++) {
             String PREFIX = "400";
             if (x >= 10 && x < 100) {
                 PREFIX = "40";
@@ -353,28 +351,28 @@ public class CloudSimExampleMkg4CHECK {
                 PREFIX = "4";
 
             }
-            HostListids.add(PREFIX + x);
+            hostListIds.add(PREFIX + x);
 
         }
 
 
-        System.out.print("\n\n\n IDS of Host layer.........." + HostListids);
+        System.out.print("\n\n\n IDS of Host layer.........." + hostListIds);
 
 
-        int Randomdivider1 = ThreadLocalRandom.current().nextInt(0, NUMBER + 1);
-        int Randomdivider2 = ThreadLocalRandom.current().nextInt(0, NUMBER + 1);
+        int randomDivider1 = ThreadLocalRandom.current().nextInt(0, hostCount + 1);
+        int randomDivider2 = ThreadLocalRandom.current().nextInt(0, hostCount + 1);
 
-        for (int x = 0; x < HostListids.size(); x++) {
+        for (int x = 0; x < hostListIds.size(); x++) {
 
 
-            if (x == Randomdivider1 || x == Randomdivider2) {
+            if (x == randomDivider1 || x == randomDivider2) {
                 mips = ThreadLocalRandom.current().nextInt(3725, 5320 + 1);
                 System.out.println("\n\n\n ......mips value..host........" + mips);
             }
 
 
             hostList.add(
-                    new Host(hostId = Integer.parseInt(HostListids.get(x).toString()), new RamProvisionerSimple(ram),
+                    new Host(Integer.parseInt(hostListIds.get(x)), new RamProvisionerSimple(ram),
                             new BwProvisionerSimple(bw), storage, peList, new VmSchedulerTimeShared(peList))); // This
             // is
             // our
@@ -390,7 +388,6 @@ public class CloudSimExampleMkg4CHECK {
         // Here are the steps needed to create a PowerDatacenter:
         // 1. We need to create a list to store
         // our machine
-        List<Host> hostList = new ArrayList<Host>();
 
         int iNUMBER = 4;
         int iCoreLayerSwitch = iNUMBER;
@@ -403,37 +400,20 @@ public class CloudSimExampleMkg4CHECK {
         createCoreLayerSwitch(iCoreLayerSwitch);
         createAggLayerSwitch(iAggLayerSwitch);
         createEdgeLayerSwitch(iEdgeLayerSwitch);
-        hostList = createHost(hostList, iHost);
+        List<Host> hostList = createHost(new ArrayList<>(), iHost);
 
         System.out.println("\n\n Got Host List.........." + hostList);
 
         System.out.println("\n\nStart Create Core to Agg link..........");
 
         for (int x = 0; x < iAggLayerSwitch; x = x + 2) {
-            NetworkTopology.addLink(Integer.parseInt(CoreSwitchList.get(0).toString()), Integer.parseInt(AggSwitchList.get(x).toString()), 10.00, 1);
-            NetworkTopology.addLink(Integer.parseInt(CoreSwitchList.get(1).toString()), Integer.parseInt(AggSwitchList.get(x).toString()), 10.00, 1);
-
-            // System.out.println("\n\n .core
-            // 0..."+Integer.parseInt(CoreSwitchList.get(0).toString()));
-            // System.out.println("\n\n .core
-            // 1...."+Integer.parseInt(CoreSwitchList.get(1).toString()));
-            // System.out.println("\n\n
-            // .value...."+Integer.parseInt(AggSwitchList.get(x).toString()));
+            NetworkTopology.addLink(Integer.parseInt(coreSwitchList.get(0)), Integer.parseInt(aggSwitchList.get(x)), 10.00, 1);
+            NetworkTopology.addLink(Integer.parseInt(coreSwitchList.get(1)), Integer.parseInt(aggSwitchList.get(x)), 10.00, 1);
         }
 
         for (int x = 1; x < iAggLayerSwitch; x = x + 2) {
-
-            NetworkTopology.addLink(Integer.parseInt(CoreSwitchList.get(2).toString()), Integer.parseInt(AggSwitchList.get(x).toString()), 10.00, 1);
-            NetworkTopology.addLink(Integer.parseInt(CoreSwitchList.get(3).toString()),
-                    Integer.parseInt(AggSwitchList.get(x).toString()), 10.00, 1);
-            /*
-             * System.out.println("\n\n Part 2m core 0..."+Integer.parseInt(CoreSwitchList.
-             * get(2).toString()));
-             * System.out.println("\n\n Part 2m core 0..."+Integer.parseInt(CoreSwitchList.
-             * get(3).toString()));
-             * System.out.println("\n\n Part 2m core 0..."+Integer.parseInt(AggSwitchList.
-             * get(x).toString()));
-             */
+            NetworkTopology.addLink(Integer.parseInt(coreSwitchList.get(2)), Integer.parseInt(aggSwitchList.get(x)), 10.00, 1);
+            NetworkTopology.addLink(Integer.parseInt(coreSwitchList.get(3)), Integer.parseInt(aggSwitchList.get(x)), 10.00, 1);
         }
         System.out.println("\n\n Done Create Core to Agg link..........");
 
@@ -441,14 +421,14 @@ public class CloudSimExampleMkg4CHECK {
 
         for (int x = 0; x < iAggLayerSwitch; x = x + 2) {
 
-            NetworkTopology.addLink(Integer.parseInt(AggSwitchList.get(x).toString()),
-                    Integer.parseInt(EdgeSwitchList.get(x).toString()), 1.00, 2.00);
-            NetworkTopology.addLink(Integer.parseInt(AggSwitchList.get(x).toString()),
-                    Integer.parseInt(EdgeSwitchList.get(x + 1).toString()), 1.00, 2.00);
-            NetworkTopology.addLink(Integer.parseInt(AggSwitchList.get(x + 1).toString()),
-                    Integer.parseInt(EdgeSwitchList.get(x).toString()), 1.00, 2.00);
-            NetworkTopology.addLink(Integer.parseInt(AggSwitchList.get(x + 1).toString()),
-                    Integer.parseInt(EdgeSwitchList.get(x + 1).toString()), 1.00, 2.00);
+            NetworkTopology.addLink(Integer.parseInt(aggSwitchList.get(x)),
+                    Integer.parseInt(edgeSwitchList.get(x)), 1.00, 2.00);
+            NetworkTopology.addLink(Integer.parseInt(aggSwitchList.get(x)),
+                    Integer.parseInt(edgeSwitchList.get(x + 1)), 1.00, 2.00);
+            NetworkTopology.addLink(Integer.parseInt(aggSwitchList.get(x + 1)),
+                    Integer.parseInt(edgeSwitchList.get(x)), 1.00, 2.00);
+            NetworkTopology.addLink(Integer.parseInt(aggSwitchList.get(x + 1)),
+                    Integer.parseInt(edgeSwitchList.get(x + 1)), 1.00, 2.00);
 
         }
 
@@ -458,9 +438,9 @@ public class CloudSimExampleMkg4CHECK {
 
         for (int x = 0; x < iEdgeLayerSwitch; x++) {
 
-            NetworkTopology.addLink(Integer.parseInt(EdgeSwitchList.get(x).toString()), hostList.get(2 * x).getId(),
+            NetworkTopology.addLink(Integer.parseInt(edgeSwitchList.get(x)), hostList.get(2 * x).getId(),
                     20.0, 10);
-            NetworkTopology.addLink(Integer.parseInt(EdgeSwitchList.get(x).toString()), hostList.get(2 * x + 1).getId(),
+            NetworkTopology.addLink(Integer.parseInt(edgeSwitchList.get(x)), hostList.get(2 * x + 1).getId(),
                     20.0, 10);
 
         }
@@ -479,10 +459,11 @@ public class CloudSimExampleMkg4CHECK {
         double costPerMem = 0.05;        // the cost of using memory in this resource
         double costPerStorage = 0.1;    // the cost of using storage in this resource
         double costPerBw = 0.1;            // the cost of using bw in this resource
-        LinkedList<Storage> storageList = new LinkedList<Storage>();    //we are not adding SAN devices by now
+        LinkedList<Storage> storageList = new LinkedList<>();    //we are not adding SAN devices by now
 
         DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
-                arch, os, vmm, hostList, time_zone, cost, costPerMem, costPerStorage, costPerBw);
+                arch, os, vmm, hostList, time_zone, cost, costPerMem, costPerStorage, costPerBw
+        );
 
 
         // 6. Finally, we need to create a PowerDatacenter object.
@@ -506,7 +487,6 @@ public class CloudSimExampleMkg4CHECK {
             broker = new DatacenterBrokerMkg(name);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
         return broker;
     }
@@ -527,8 +507,8 @@ public class CloudSimExampleMkg4CHECK {
                 "Data center ID" + indent + "VM ID" + indent + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
 
         DecimalFormat dft = new DecimalFormat("###.##");
-        for (int i = 0; i < size; i++) {
-            cloudlet = list.get(i);
+        for (Cloudlet value : list) {
+            cloudlet = value;
             Log.print(indent + cloudlet.getCloudletId() + indent + indent);
 
             if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS) {

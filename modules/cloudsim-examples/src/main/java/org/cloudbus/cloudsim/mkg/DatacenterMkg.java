@@ -19,20 +19,20 @@ public class DatacenterMkg extends Datacenter {
     static long core_sw_frc = 0;
     static long agg_sw_frc = 0;
     static long edg_sw_frc = 0;
-    public List<ResCloudletMkg> suspect1 = new ArrayList<ResCloudletMkg>();
-    public List<ResCloudletMkg> suspect2 = new ArrayList<ResCloudletMkg>();
+    public List<ResCloudletMkg> suspect1 = new ArrayList<>();
+    public List<ResCloudletMkg> suspect2 = new ArrayList<>();
     /**
      * List of VMs to Fail
      */
-    List<VmMkg> toFail = new ArrayList<VmMkg>();
+    List<VmMkg> toFail = new ArrayList<>();
     /**
      * List of failed Vms as detected by the monitoring module
      */
-    List<Vm> failedVMs = new ArrayList<Vm>();
+    List<Vm> failedVMs = new ArrayList<>();
     /**
      * List failed cloudlets as detected by detection algorithm 2
      */
-    List<Cloudlet> failedDetectedCloudlets = new ArrayList<Cloudlet>();
+    List<Cloudlet> failedDetectedCloudlets = new ArrayList<>();
     /**
      * double variable to keep track of last time a monitor was called.
      * Reduces redundant calls at same time
@@ -62,7 +62,7 @@ public class DatacenterMkg extends Datacenter {
     /**
      * Map of Cloudlets to their Remaining Length. Used by Detection algorithm 2
      */
-    private final Map<Integer, Long> clToRemainingLength = new HashMap<Integer, Long>();
+    private final Map<Integer, Long> clToRemainingLength = new HashMap<>();
 
     public DatacenterMkg(String name,
                          DatacenterCharacteristics characteristics,
@@ -901,20 +901,26 @@ public class DatacenterMkg extends Datacenter {
      * @param timeOfFailure: The actual time of failure
      * @param toFailList:    List of VMs to fail
      */
-    public void setFailureParameters(List<VmMkg> vmlist, int numberOfVms, int delayType, double timeOfFailure, List<VmMkg> toFailList) {
+    public void setFailureParameters(
+            List<VmMkg> vmlist,
+            int numberOfVms,
+            int delayType,
+            double timeOfFailure,
+            List<VmMkg> toFailList
+    ) {
         switch (numberOfVms) {
             case FailureParameters.FAIL_SINGLE_VM:
                 /*
-                 * Fail any single random VM
+                 * Fail any single VM
                  */
                 VmMkg vmToFail;
-                /** If user has not specified which VM to Fail */
+                /* If user has not specified which VM to Fail */
                 if (toFailList == null) {
                     //Randomly select a VM to Fail
                     Random rand = new Random();
                     vmToFail = vmlist.get(rand.nextInt(vmlist.size()));
                 }
-                /** If user has specified which VM to Fail */
+                /* If user has specified which VM to Fail */
                 else {
                     //choose first Vm from toFailList
                     vmToFail = toFailList.get(0);
@@ -926,7 +932,7 @@ public class DatacenterMkg extends Datacenter {
                 /*
                  * Fail multiple VMs
                  */
-                /**Vm List to Fail is not specified */
+                /* Vm List to Fail is not specified */
                 if (toFailList == null) {
                     //Randomly select number of VMs to Fail
                     Random num = new Random();
@@ -938,7 +944,7 @@ public class DatacenterMkg extends Datacenter {
                         toFail.add(vmFail);
                     }
                 }
-                /** Vm List to Fail is specified */
+                /* Vm List to Fail is specified */
                 else {
                     //If Number of Vms to Fail is greater than Vm list Size
                     if (toFailList.size() > vmlist.size()) {

@@ -86,21 +86,21 @@ public class DatacenterBrokerMkg extends SimEntity {
      */
     public DatacenterBrokerMkg(String name) throws Exception {
         super(name);
-        setVmList(new ArrayList<VmMkg>());
-        setVmsCreatedList(new ArrayList<VmMkg>());
-        setCloudletList(new ArrayList<Cloudlet>());
-        setCloudletSubmittedList(new ArrayList<Cloudlet>());
-        setCloudletReceivedList(new ArrayList<Cloudlet>());
+        setVmList(new ArrayList<>());
+        setVmsCreatedList(new ArrayList<>());
+        setCloudletList(new ArrayList<>());
+        setCloudletSubmittedList(new ArrayList<>());
+        setCloudletReceivedList(new ArrayList<>());
 
         cloudletsSubmitted = 0;
         setVmsRequested(0);
         setVmsAcks(0);
         setVmsDestroyed(0);
 
-        setDatacenterIdsList(new LinkedList<Integer>());
-        setDatacenterRequestedIdsList(new ArrayList<Integer>());
-        setVmsToDatacentersMap(new HashMap<Integer, Integer>());
-        setDatacenterCharacteristicsList(new HashMap<Integer, DatacenterCharacteristics>());
+        setDatacenterIdsList(new LinkedList<>());
+        setDatacenterRequestedIdsList(new ArrayList<>());
+        setVmsToDatacentersMap(new HashMap<>());
+        setDatacenterCharacteristicsList(new HashMap<>());
     }
 
 
@@ -188,7 +188,7 @@ public class DatacenterBrokerMkg extends SimEntity {
         DatacenterCharacteristics characteristics = (DatacenterCharacteristics) ev.getData();
         getDatacenterCharacteristicsList().put(characteristics.getId(), characteristics);
         if (getDatacenterCharacteristicsList().size() == getDatacenterIdsList().size()) {
-            setDatacenterRequestedIdsList(new ArrayList<Integer>());
+            setDatacenterRequestedIdsList(new ArrayList<>());
             createVmsInDatacenter(getDatacenterIdsList().get(0));
         }
     }
@@ -202,7 +202,7 @@ public class DatacenterBrokerMkg extends SimEntity {
      */
     protected void processResourceCharacteristicsRequest(SimEvent ev) {
         setDatacenterIdsList(CloudSim.getCloudResourceList());
-        setDatacenterCharacteristicsList(new HashMap<Integer, DatacenterCharacteristics>());
+        setDatacenterCharacteristicsList(new HashMap());
 
         Log.printLine(CloudSim.clock() + ": " + getName() + ": Cloud Resource List received with "
                 + getDatacenterIdsList().size() + " resource(s)");
