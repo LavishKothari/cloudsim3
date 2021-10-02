@@ -120,9 +120,9 @@ public class Mkg {
             // r.generateCloudletReport();
             Log.printLine("Fault Injection Time = " + FailureParameters.FALT_INJECTION_TIME);
             if (ConstsMkg.DETECTION_ALGORITHM == 1) {
-                Log.printLine("Fault Detection Time(Algorithm 1) = " + FailureParameters.FALT_DETECTION_TIME);
+                Log.printLine("Fault Detection Time(Algorithm 1) = " + FailureParameters.FAULT_DETECTION_TIME);
             } else if (ConstsMkg.DETECTION_ALGORITHM == 2) {
-                Log.printLine("Fault Detection Time(Algorithm 2) = " + FailureParameters.FALT_DETECTION_TIME);
+                Log.printLine("Fault Detection Time(Algorithm 2) = " + FailureParameters.FAULT_DETECTION_TIME);
             }
             Log.printLine("Number of Times Monitor was called = " + FailureParameters.NO_OF_MONITOR_CALLS);
             Log.printLine("CloudSimExampleAtul4 finished!");

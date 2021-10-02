@@ -96,13 +96,12 @@ public class CloudletSchedulerTimeSharedMkg extends CloudletSchedulerMkg {
 
         // check finished cloudlets
         double nextEvent = Double.MAX_VALUE;
-        List<ResCloudletMkg> toRemove = new ArrayList<ResCloudletMkg>();
+        List<ResCloudletMkg> toRemove = new ArrayList<>();
         for (ResCloudletMkg rcl : getCloudletExecList()) {
             long remainingLength = rcl.getRemainingCloudletLength();
             if (remainingLength == 0) {// finished: remove from the list
                 toRemove.add(rcl);
                 cloudletFinish(rcl);
-                continue;
             }
         }
         getCloudletExecList().removeAll(toRemove);

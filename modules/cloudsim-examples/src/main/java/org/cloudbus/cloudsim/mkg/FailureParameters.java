@@ -20,7 +20,7 @@ public class FailureParameters {
 
     public static double FALT_INJECTION_TIME = 0.0;
 
-    public static double FALT_DETECTION_TIME = 0.0;
+    public static double FAULT_DETECTION_TIME = 0.0;
 
     public static int NO_OF_MONITOR_CALLS = 0;
 
@@ -39,11 +39,11 @@ public class FailureParameters {
     }
 
     public double getFaultDetectionTime() {
-        return this.FALT_DETECTION_TIME;
+        return this.FAULT_DETECTION_TIME;
     }
 
     public void setFaultDetectionTime(double time) {
-        this.FALT_DETECTION_TIME = time;
+        this.FAULT_DETECTION_TIME = time;
     }
 
     public double getFaultInjectionTime() {

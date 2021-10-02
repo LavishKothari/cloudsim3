@@ -19,20 +19,20 @@ public class DatacenterMkg extends Datacenter {
     static long core_sw_frc = 0;
     static long agg_sw_frc = 0;
     static long edg_sw_frc = 0;
-    public List<ResCloudletMkg> suspect1 = new ArrayList<ResCloudletMkg>();
-    public List<ResCloudletMkg> suspect2 = new ArrayList<ResCloudletMkg>();
+    public List<ResCloudletMkg> suspect1 = new ArrayList<>();
+    public List<ResCloudletMkg> suspect2 = new ArrayList<>();
     /**
      * List of VMs to Fail
      */
-    List<VmMkg> toFail = new ArrayList<VmMkg>();
+    List<VmMkg> toFail = new ArrayList<>();
     /**
      * List of failed Vms as detected by the monitoring module
      */
-    List<Vm> failedVMs = new ArrayList<Vm>();
+    List<Vm> failedVMs = new ArrayList<>();
     /**
      * List failed cloudlets as detected by detection algorithm 2
      */
-    List<Cloudlet> failedDetectedCloudlets = new ArrayList<Cloudlet>();
+    List<Cloudlet> failedDetectedCloudlets = new ArrayList<>();
     /**
      * double variable to keep track of last time a monitor was called.
      * Reduces redundant calls at same time
@@ -59,10 +59,13 @@ public class DatacenterMkg extends Datacenter {
     int RFFvmToScheduleOn;
     int BFvmToScheduleOn;
     int FFvmToScheduleOn;
+
+    private boolean hostIdentifiedByFuzzyLogic = false;
+
     /**
      * Map of Cloudlets to their Remaining Length. Used by Detection algorithm 2
      */
-    private final Map<Integer, Long> clToRemainingLength = new HashMap<Integer, Long>();
+    private final Map<Integer, Long> clToRemainingLength = new HashMap<>();
 
     public DatacenterMkg(String name,
                          DatacenterCharacteristics characteristics,
@@ -232,20 +235,27 @@ public class DatacenterMkg extends Datacenter {
                 //checkCloudletCompletion();
                 break;
             case CloudSimTagsMkg.VM_MONITORING_EVENT:
-                //updateCloudletProcessing();
-
-                if (ConstsMkg.DETECTION_ALGORITHM == 1) {
-                    monitorCloudlets2();
-                } else if (ConstsMkg.DETECTION_ALGORITHM == 2) {
-                    monitorCloudlets2();
-                }
+                monitorCloudlets2();
                 break;
-
+            case CloudSimTagsMkg.MODIFY_HOST_CONFIGURATION:
+                updateHostParameters(ev);
+                break;
             // other unknown tags are processed by this method
             default:
                 processOtherEvent(ev);
                 break;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void updateHostParameters(SimEvent ev) {
+        Map<String, Object> dataMap = (Map<String, Object>) ev.getData();
+        Host host = (Host) dataMap.get("host");
+        VmMkg vm = (VmMkg) dataMap.get("vm");
+        HostParameter newHostParameters = (HostParameter) dataMap.get("newHostParameters");
+
+        host.getRamProvisioner().allocateRamForVm(vm, newHostParameters.getOccupiedRam());
+        host.getBwProvisioner().allocateBwForVm(vm, newHostParameters.getOccupiedBw());
     }
 
     /**
@@ -391,8 +401,6 @@ public class DatacenterMkg extends Datacenter {
             if (estimatedFinishTime > 0.0 && !Double.isInfinite(estimatedFinishTime)) {
                 estimatedFinishTime += fileTransferTime;
                 send(getId(), estimatedFinishTime, CloudSimTags.VM_DATACENTER_EVENT);
-                //send(getId(), estimatedFinishTime, CloudSimTagsMkg.VM_MONITORING_EVENT);
-
             }
 
             if (ack) {
@@ -416,6 +424,19 @@ public class DatacenterMkg extends Datacenter {
         checkCloudletCompletion();
     }
 
+    private void callSend(VmMkg vm, double changeTime) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("host", vm.getHost());
+        data.put("vm", vm);
+        data.put("newHostParameters", HostFluctuatingParameters.PARAMETER_MAP.get(changeTime));
+        send(
+                getId(),
+                changeTime, // time at which the configuration will change
+                CloudSimTagsMkg.MODIFY_HOST_CONFIGURATION,
+                data
+        );
+    }
+
     /**
      * Updates processing of each cloudlet running in this PowerDatacenter. It is necessary because
      * Hosts and VirtualMachines are simple objects, not entities. So, they don't receive events and
@@ -429,45 +450,50 @@ public class DatacenterMkg extends Datacenter {
         // R: for term is to allow loop at simulation start. Otherwise, one initial
         // simulation step is skipped and schedulers are not properly initialized
         if (CloudSim.clock() < 1.0 && CloudSim.clock() > getLastProcessTime()) {
+            // Fails Vms as specified in the Failure Parameters
+            toFail.stream()
+                    .filter(VmMkg::isActive)
+                    .forEach(vm -> send(getId(), delayOfFailure, CloudSimTagsMkg.VM_FAILING_EVENT, vm));
 
-            //Fails Vms as specified in the Failure Parameters
-            for (int i = 0; i < toFail.size(); i++) {
-                VmMkg vm = toFail.get(i);
-                if (vm.isActive()) {
-                    send(getId(), delayOfFailure, CloudSimTagsMkg.VM_FAILING_EVENT, vm);
+
+            for (VmMkg vmToFail : toFail) {
+                if (vmToFail.isActive()) {
+                    for (double changeTime : HostFluctuatingParameters.PARAMETER_MAP.keySet()) {
+                        for (Vm cvm : vmToFail.getHost().getVmList()) {
+                            callSend((VmMkg) cvm, changeTime);
+                        }
+                        send(
+                                getId(),
+                                changeTime + FuzzyLogicConstants.MONITORING_DELAY_AFTER_FLUCTUATE,
+                                CloudSimTagsMkg.VM_MONITORING_EVENT,
+                                null
+                        );
+                    }
                 }
             }
 
         }
         if (CloudSim.clock() < 0.111 || CloudSim.clock() > getLastProcessTime() + CloudSim.getMinTimeBetweenEvents()) {
-            List<? extends Host> list = getVmAllocationPolicy().getHostList();
+            List<? extends Host> hostList = getVmAllocationPolicy().getHostList();
             double smallerTime = Double.MAX_VALUE;
             // for each host...
-            for (int i = 0; i < list.size(); i++) {
-                Host host = list.get(i);
+            for (Host host : hostList) {
                 // inform VMs to update processing
                 double time = host.updateVmsProcessing(CloudSim.clock());
-
-                // TODO get VM characteristics
-
 
                 // what time do we expect that the next cloudlet will finish?
                 if (time < smallerTime) {
                     smallerTime = time;
                 }
             }
-            // gurantees a minimal interval before scheduling the event
+            // guarantees a minimal interval before scheduling the event
             if (smallerTime < CloudSim.clock() + CloudSim.getMinTimeBetweenEvents() + 0.01) {
                 smallerTime = CloudSim.clock() + CloudSim.getMinTimeBetweenEvents() + 0.01;
             }
             if (smallerTime != Double.MAX_VALUE) {
-                schedule(getId(), (smallerTime - CloudSim.clock()), CloudSimTags.VM_DATACENTER_EVENT);
-            }
+                //schedule(getId(), (smallerTime - CloudSim.clock()), CloudSimTags.VM_DATACENTER_EVENT);
 
-            //double minTime = updateCloudetProcessingWithoutSchedulingFutureEventsForce();
-            // schedules an event to the next time
-            if (smallerTime != Double.MAX_VALUE) {
-                //CloudSim.cancelAll(getId(), new PredicateType(CloudSimTags.VM_DATACENTER_EVENT));
+                // schedules an event to the next time
                 send(getId(), getSchedulingInterval(), CloudSimTags.VM_DATACENTER_EVENT);
 
                 //If the monitor module is ON, call the monitor
@@ -476,36 +502,12 @@ public class DatacenterMkg extends Datacenter {
                         //Detection Algo 1: Monitor invoked at all MONITORING INTERVALS
                         send(getId(), ConstsMkg.MONITORING_INTERVAL, CloudSimTagsMkg.VM_MONITORING_EVENT);
                     } else if (ConstsMkg.DETECTION_ALGORITHM == 2) {
-                        //Detection Algo 1: Monitor invoked at all SCHEDULING INTERVALS
+                        // Detection Algo 1: Monitor invoked at all SCHEDULING INTERVALS
                         send(getId(), getSchedulingInterval(), CloudSimTagsMkg.VM_MONITORING_EVENT);
                     } else if (ConstsMkg.DETECTION_ALGORITHM == 3) {
-                        //Detection Algo 3: fUZZY lOGIC
-                        //send(getId(), ConstsMkg.MONITORING_INTERVAL, CloudSimTagsMkg.VM_MONITORING_EVENT);
-                        System.out.println("************* FUZZY LOGIC *************");
-
-                        for (int i = 0; i < list.size(); i++) {
-                            Host host = list.get(i);
-
-                            System.out.println("****************" + host.getRam());
-                            System.out.println("****************" + host.getBw());
-                            System.out.println("****************" + host.getId());
-                            System.out.println("****************" + host.getStorage());
-                            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("fcl/fuzzytip.fcl");
-                            FIS fis = FIS.load(inputStream, true); // Load from 'FCL' file
-                            fis.setVariable("cpu", host.getMaxAvailableMips()); // Set inputs
-                            fis.setVariable("memory", host.getRam());
-                            fis.setVariable("disk", host.getBw());
-                            fis.setVariable("network", host.getStorage());
-                            fis.evaluate(); // Evaluate
-
-                            // Show output variable
-                            System.out.println("Output value:" + fis.getVariable("risk").getValue());
-
-                        }
-
-                        //fetch 4 parameters
+                        // Detection Algo 3: Fuzzy Logic
+                        send(getId(), ConstsMkg.MONITORING_INTERVAL, CloudSimTagsMkg.VM_MONITORING_EVENT);
                     }
-
 
                 }
 
@@ -587,156 +589,220 @@ public class DatacenterMkg extends Datacenter {
 
 
     private void monitorCloudlets2() {
-        // TODO Auto-generated method stub
         if (CloudSim.clock() > lastMonitorRunTime) {
             numberOfTimesMonitorWasCalled++;
-            Log.printLine(CloudSim.clock() + ":[CMM2]Cloudlet Monitoring Module:");
-            //CloudSim.cancelAll(getId(), new PredicateType(CloudSimTagsMkg.VM_MONITORING_EVENT));
-            List<? extends Host> list = getVmAllocationPolicy().getHostList();
-            /** If all CLoudlets on that particular VM has failed. Conclude that VM has failed. */
-            for (Host host : list) {
-                for (Vm vm : host.getVmList()) {
-                    if (!failedVMs.contains(vm)) {
-                        if (((CloudletSchedulerMkg) vm.getCloudletScheduler()).isFailedCloudlets()) {
-                            //List of failed ResCloudlets
-                            List<ResCloudletMkg> cloudletList = ((CloudletSchedulerMkg) vm.getCloudletScheduler()).getCloudletFailedList();
+            Log.printLine(CloudSim.clock() + ": [CMM2] Cloudlet Monitoring Module:");
+            if (ConstsMkg.DETECTION_ALGORITHM == 1 || ConstsMkg.DETECTION_ALGORITHM == 2) {
+                findSuspectsByAlgo1And2();
+            } else if (ConstsMkg.DETECTION_ALGORITHM == 3 && !hostIdentifiedByFuzzyLogic) {
+                findSuspectsByFuzzyLogic();
+            }
 
-                            for (ResCloudletMkg rcl : cloudletList) {
-                                if (rcl.getRemainingCloudletLength() < clToRemainingLength.get(rcl.getCloudletId())) {
-                                    //OKAY. Update Length
-                                    Log.printLine(CloudSim.clock() + ":Cloudlet ID=" + rcl.getCloudletId() + " Length is changing. Previous=" + clToRemainingLength.get(rcl.getCloudletId())
-                                            + " New=" + rcl.getRemainingCloudletLength());
-                                    clToRemainingLength.remove(rcl.getCloudletId());
-                                    clToRemainingLength.put(rcl.getCloudletId(), rcl.getRemainingCloudletLength());
+        }
+    }
 
-                                    //Remove from both suspect lists
-                                    //Log.printLine(CloudSim.clock()+"Removing Cloudlet ID#"+rcl.getCloudletId() + " from suspect lists");
-                                    if (suspect1.contains(rcl)) {
-                                        suspect1.remove(rcl);
-                                    }
-                                    if (suspect2.contains(rcl)) {
-                                        suspect2.remove(rcl);
-                                    }
+    private void findSuspectsByFuzzyLogic() {
+        List<? extends Host> hostList = getVmAllocationPolicy().getHostList();
+        System.out.println("host to fail: " + toFail.get(0).getHost().getId());
+        for (Host host : hostList) {
+
+            int totalMips = host.getTotalMips();
+            int totalRam = host.getRam();
+            long totalStorage = host.getStorage();
+            long totalBw = host.getBw();
+
+            int occupiedMips = host.getTotalMips() / host.getNumberOfPes();
+            int occupiedRam = host.getRamProvisioner().getUsedRam();
+            long occupiedStorage = host.getStorage();
+            long occupiedBw = host.getBwProvisioner().getUsedBw();
+
+            double percentOccupiedMips = occupiedMips / (double) totalMips * 100;
+            double percentOccupiedRam = occupiedRam / (double) totalRam * 100;
+            double percentOccupiedStorage = occupiedStorage / (double) totalStorage * 100;
+            double percentOccupiedBw = occupiedBw / (double) totalBw * 100;
+
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("fcl/fuzzytip.fcl");
+            FIS fis = FIS.load(inputStream, true); // Load from 'FCL' file
+            fis.setVariable("cpu", percentOccupiedMips); // Set inputs
+            fis.setVariable("memory", percentOccupiedRam);
+            fis.setVariable("disk", percentOccupiedStorage);
+            fis.setVariable("network", percentOccupiedBw);
+            fis.evaluate(); // Evaluate
+
+            double risk = fis.getVariable("risk").getValue();
+            System.out.println(
+                    "hostId = " + host.getId() +
+                            " occupied-ram-% = " + percentOccupiedRam +
+                            " occupied-bw-% = " + percentOccupiedBw +
+                            " occupied-storage-% = " + percentOccupiedStorage +
+                            " occupied-mips-% = " + percentOccupiedMips +
+                            "  RISK = " + risk
+            );
+            if (!hostIdentifiedByFuzzyLogic && risk > FuzzyLogicConstants.RISK_THRESHOLD_FOR_FAULT_DETECTION) {
+                for (Vm vmMkg : host.getVmList()) {
+                    List<ResCloudletMkg> failedCloudlets = ((CloudletSchedulerMkg) vmMkg.getCloudletScheduler()).getCloudletFailedList();
+                    for (ResCloudletMkg res : failedCloudlets) {
+                        failedDetectedCloudlets.add(res.getCloudlet());
+                    }
+                }
+                for (VmMkg vmMkg : toFail) {
+                    hostIdentifiedByFuzzyLogic = true;
+                    processDetectedFault(vmMkg);
+                }
+            }
+        }
+    }
+
+    private void findSuspectsByAlgo1And2() {
+
+        List<? extends Host> hostList = getVmAllocationPolicy().getHostList();
+        /* If all Cloudlets on that particular VM has failed. Conclude that VM has failed. */
+        for (Host host : hostList) {
+            for (Vm vm : host.getVmList()) {
+                if (!failedVMs.contains(vm)) {
+                    if (((CloudletSchedulerMkg) vm.getCloudletScheduler()).isFailedCloudlets()) {
+                        //List of failed ResCloudlets
+                        List<ResCloudletMkg> failedCloudlets = ((CloudletSchedulerMkg) vm.getCloudletScheduler()).getCloudletFailedList();
+
+                        for (ResCloudletMkg failedCloudlet : failedCloudlets) {
+                            if (failedCloudlet.getRemainingCloudletLength() < clToRemainingLength.get(failedCloudlet.getCloudletId())) {
+                                //OKAY. Update Length
+                                Log.printLine(CloudSim.clock() + ":Cloudlet ID=" + failedCloudlet.getCloudletId() + " Length is changing. Previous=" + clToRemainingLength.get(failedCloudlet.getCloudletId())
+                                        + " New=" + failedCloudlet.getRemainingCloudletLength());
+                                clToRemainingLength.remove(failedCloudlet.getCloudletId());
+                                clToRemainingLength.put(failedCloudlet.getCloudletId(), failedCloudlet.getRemainingCloudletLength());
+
+                                //Remove from both suspect lists
+                                //Log.printLine(CloudSim.clock()+"Removing Cloudlet ID#"+rcl.getCloudletId() + " from suspect lists");
+                                if (suspect1.contains(failedCloudlet)) {
+                                    suspect1.remove(failedCloudlet);
+                                }
+                                if (suspect2.contains(failedCloudlet)) {
+                                    suspect2.remove(failedCloudlet);
+                                }
+                            } else {
+                                //NOT OKAY. Add to suspect list accordingly
+                                if (suspect1.contains(failedCloudlet)) {
+                                    //Already in Suspect 1. Add to suspect 2
+                                    Log.printLine(CloudSim.clock() + ":Adding Cloudlet ID #" + failedCloudlet.getCloudletId() + " to Suspect 2 List");
+                                    suspect2.add(failedCloudlet);
                                 } else {
-                                    //NOT OKAY. Add to suspect list accordingly
-                                    if (suspect1.contains(rcl)) {
-                                        //Already in Suspect 1. Add to suspect 2
-                                        Log.printLine(CloudSim.clock() + ":Adding Cloudlet ID #" + rcl.getCloudletId() + " to Suspect 2 List");
-                                        suspect2.add(rcl);
-                                    } else {
-                                        //Not in suspect 1. Add to suspect 1
-                                        Log.printLine(CloudSim.clock() + ":Adding Cloudlet ID #" + rcl.getCloudletId() + " to Suspect 1 List");
-                                        suspect1.add(rcl);
-                                    }
+                                    //Not in suspect 1. Add to suspect 1
+                                    Log.printLine(CloudSim.clock() + ":Adding Cloudlet ID #" + failedCloudlet.getCloudletId() + " to Suspect 1 List");
+                                    suspect1.add(failedCloudlet);
                                 }
                             }
-                            /** If all CLoudlets on that particular VM has failed. Conclude that VM has failed. */
-                            for (ResCloudletMkg a : suspect2) {
-                                if (!failedDetectedCloudlets.contains(a)) {
-                                    failedDetectedCloudlets.add(a.getCloudlet());
-                                    Log.printLine(CloudSim.clock() + ":[CMM2]Cloudlet ID = " + a.getCloudletId() + " on VM ID " + a.getCloudlet().getVmId());
-                                    //Checking if all cloudlets on that particular VM has failed or not.
-                                    boolean allFailed = true;
-                                    Log.printLine("List of cloudlets scheduled on VM ID#" + a.getCloudlet().getVmId() + ":");
-                                    VmMkg v = (VmMkg) getVmAllocationPolicy().getHost(a.getCloudlet().getVmId(), a.getUserId()).getVm(a.getCloudlet().getVmId(), a.getUserId());
-                                    for (int k = 0; k < v.getSubmittedCloudletList().size(); k++) {
-                                        Cloudlet c = v.getSubmittedCloudletList().get(k);
-                                        Log.printLine("[CMM2]CLOUDLET ID#" + c.getCloudletId() + " VMID#" + c.getVmId());
-                                        if (failedDetectedCloudlets.contains(c)) {
-                                            Log.printLine("[CMM2] The Cloudlet ID#" + c.getCloudletId() + " is in the failed list");
-                                        } else {
-                                            Log.printLine("[CMM2] The Cloudlet ID#" + c.getCloudletId() + " is NOT in the failed list");
-                                            allFailed = false;
-                                        }
-
-                                    }
-                                    /** If all CLoudlets on that particular VM has failed. Conclude that VM has failed. */
-                                    if (allFailed) {
-                                        Log.printLine("--------------------\nFAULT DETECTED\n--------------------\n" + CloudSim.clock() + ":VM ID #" + v.getId() + "has failed.");
-                                        failedVMs.add(v);
-                                        FailureParameters.FALT_DETECTION_TIME = CloudSim.clock();
-
-
-                                        Random random = new Random();
-
-                                        Scanner scan = new Scanner(System.in);
-                                        System.out.println("Press 1: RFF ");
-                                        System.out.println("Press 2: BF ");
-                                        System.out.println("Press 3: FF ");
-                                        int number = scan.nextInt();
-                                        /* CL Migration Code Starts*/
-                                        for (Cloudlet cx : failedDetectedCloudlets) {
-                                            //TODO Decide which VM to schedule Cloudlet on
-                                            int vmToScheduleOn = -1;
-                                            switch (number) {
-                                                case 1:
-                                                    BF();
-                                                    FF();
-                                                    vmToScheduleOn = RFF();
-                                                    break;
-
-                                                case 2:
-                                                    RFF();
-                                                    FF();
-                                                    vmToScheduleOn = BF();
-                                                    break;
-
-                                                case 3:
-                                                    RFF();
-                                                    BF();
-                                                    vmToScheduleOn = FF();
-                                                    break;
-
-
-                                            }
-                                            int[] array = new int[5];
-                                            array[0] = cx.getCloudletId();
-                                            array[1] = cx.getUserId();
-                                            array[2] = cx.getVmId();
-                                            array[3] = vmToScheduleOn;  //vmDestId=4
-                                            array[4] = getId();
-                                            if (ConstsMkg.CL_MIGRATION_ON) {
-
-                                                VmMkg old_vm = (VmMkg) allVms.get(array[2]);
-                                                VmMkg RFF_new_vm = (VmMkg) allVms.get(RFFvmToScheduleOn);
-                                                VmMkg BF_new_vm = (VmMkg) allVms.get(BFvmToScheduleOn);
-                                                VmMkg FF_new_vm = (VmMkg) allVms.get(FFvmToScheduleOn);
-
-                                                RFF_result = RFF_result + transmissionoverhead * (old_vm.getBw() + RFF_new_vm.getBw());
-                                                BF_result = BF_result + transmissionoverhead * (old_vm.getBw() + BF_new_vm.getBw());
-                                                FF_result = FF_result + transmissionoverhead * (old_vm.getBw() + FF_new_vm.getBw());
-
-                                                sendNow(getId(), CloudSimTags.CLOUDLET_MOVE, array);
-                                                System.out.println("\n\n\n\n\n\n\n\n..........transmissionoverhead RFF_result......." + RFF_result);
-                                                System.out.println("\n\n\n\n\n\n\n\n..........transmissionoverhead BF_result......." + BF_result);
-                                                System.out.println("\n\n\n\n\n\n\n\n..........transmissionoverhead FF_result......." + FF_result);
-                                                transmissionoverhead = transmissionoverhead + 1;
-                                            }
-
-                                            /* CL Migration Code Ends */
-                                        }
-                                    }
-
-
-                                }
-                            }
-
-
-                        } else {
-                            //No CL in failed list. Updating cloudlet length from Exec List
-                            List<ResCloudletMkg> eCl = ((CloudletSchedulerMkg) vm.getCloudletScheduler()).getCloudletExecList();
-                            for (ResCloudletMkg r : eCl) {
-                                clToRemainingLength.remove(r.getCloudletId());
-                                clToRemainingLength.put(r.getCloudletId(), r.getRemainingCloudletLength());
-                            }
-                            Log.printLine(CloudSim.clock() + ":[CMM]:No failures Recorded on VM ID#" + vm.getId());
                         }
+                        /* If all CLoudlets on that particular VM has failed. Conclude that VM has failed. */
+                        for (ResCloudletMkg a : suspect2) {
+                            if (!failedDetectedCloudlets.contains(a)) {
+                                failedDetectedCloudlets.add(a.getCloudlet());
+                                Log.printLine(CloudSim.clock() + ":[CMM2]Cloudlet ID = " + a.getCloudletId() + " on VM ID " + a.getCloudlet().getVmId());
+                                //Checking if all cloudlets on that particular VM has failed or not.
+                                boolean allFailed = true;
+                                Log.printLine("List of cloudlets scheduled on VM ID#" + a.getCloudlet().getVmId() + ":");
+                                VmMkg v = (VmMkg) getVmAllocationPolicy().getHost(a.getCloudlet().getVmId(), a.getUserId()).getVm(a.getCloudlet().getVmId(), a.getUserId());
+                                for (int k = 0; k < v.getSubmittedCloudletList().size(); k++) {
+                                    Cloudlet c = v.getSubmittedCloudletList().get(k);
+                                    Log.printLine("[CMM2]CLOUDLET ID#" + c.getCloudletId() + " VMID#" + c.getVmId());
+                                    if (failedDetectedCloudlets.contains(c)) {
+                                        Log.printLine("[CMM2] The Cloudlet ID#" + c.getCloudletId() + " is in the failed list");
+                                    } else {
+                                        Log.printLine("[CMM2] The Cloudlet ID#" + c.getCloudletId() + " is NOT in the failed list");
+                                        allFailed = false;
+                                    }
+
+                                }
+                                /* If all Cloudlets on that particular VM has failed. Conclude that VM has failed. */
+                                if (allFailed) {
+                                    processDetectedFault(v);
+                                }
+                            }
+                        }
+
+
+                    } else {
+                        //No CL in failed list. Updating cloudlet length from Exec List
+                        List<ResCloudletMkg> eCl = ((CloudletSchedulerMkg) vm.getCloudletScheduler()).getCloudletExecList();
+                        for (ResCloudletMkg r : eCl) {
+                            clToRemainingLength.remove(r.getCloudletId());
+                            clToRemainingLength.put(r.getCloudletId(), r.getRemainingCloudletLength());
+                        }
+                        Log.printLine(CloudSim.clock() + ":[CMM]:No failures Recorded on VM ID#" + vm.getId());
                     }
                 }
             }
-            Log.printLine(CloudSim.clock() + ":" + getLastProcessTime());
-            setLastMonitorRunTime(CloudSim.clock());
-            FailureParameters.NO_OF_MONITOR_CALLS = numberOfTimesMonitorWasCalled;
+        }
+        Log.printLine(CloudSim.clock() + ":" + getLastProcessTime());
+        setLastMonitorRunTime(CloudSim.clock());
+        FailureParameters.NO_OF_MONITOR_CALLS = numberOfTimesMonitorWasCalled;
+    }
+
+    private void processDetectedFault(VmMkg failedVm) {
+
+        Log.printLine(
+                "--------------------\nFAULT DETECTED\n--------------------\n" +
+                        CloudSim.clock() + ":VM ID #" + failedVm.getId() + "has failed."
+        );
+        failedVMs.add(failedVm);
+        FailureParameters.FAULT_DETECTION_TIME = CloudSim.clock();
+
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Press 1: RFF ");
+        System.out.println("Press 2: BF ");
+        System.out.println("Press 3: FF ");
+        int number = scan.nextInt();
+        /* CL Migration Code Starts*/
+        // TODO: Lavish - check why this list is empty
+        for (Cloudlet cx : failedDetectedCloudlets) {
+            //TODO Decide which VM to schedule Cloudlet on
+            int vmToScheduleOn = -1;
+            switch (number) {
+                case 1:
+                    BF();
+                    FF();
+                    vmToScheduleOn = RFF();
+                    break;
+
+                case 2:
+                    RFF();
+                    FF();
+                    vmToScheduleOn = BF();
+                    break;
+
+                case 3:
+                    RFF();
+                    BF();
+                    vmToScheduleOn = FF();
+                    break;
+
+
+            }
+            int[] array = new int[5];
+            array[0] = cx.getCloudletId();
+            array[1] = cx.getUserId();
+            array[2] = cx.getVmId();
+            array[3] = vmToScheduleOn;  //vmDestId=4
+            array[4] = getId();
+            if (ConstsMkg.CL_MIGRATION_ON) {
+
+                VmMkg old_vm = (VmMkg) allVms.get(array[2]);
+                VmMkg RFF_new_vm = (VmMkg) allVms.get(RFFvmToScheduleOn);
+                VmMkg BF_new_vm = (VmMkg) allVms.get(BFvmToScheduleOn);
+                VmMkg FF_new_vm = (VmMkg) allVms.get(FFvmToScheduleOn);
+
+                RFF_result = RFF_result + transmissionoverhead * (old_vm.getBw() + RFF_new_vm.getBw());
+                BF_result = BF_result + transmissionoverhead * (old_vm.getBw() + BF_new_vm.getBw());
+                FF_result = FF_result + transmissionoverhead * (old_vm.getBw() + FF_new_vm.getBw());
+
+                sendNow(getId(), CloudSimTags.CLOUDLET_MOVE, array);
+                System.out.println("\n\n\n\n\n\n\n\n..........transmissionoverhead RFF_result......." + RFF_result);
+                System.out.println("\n\n\n\n\n\n\n\n..........transmissionoverhead BF_result......." + BF_result);
+                System.out.println("\n\n\n\n\n\n\n\n..........transmissionoverhead FF_result......." + FF_result);
+                transmissionoverhead = transmissionoverhead + 1;
+            }
+
+            /* CL Migration Code Ends */
         }
     }
 
@@ -901,20 +967,26 @@ public class DatacenterMkg extends Datacenter {
      * @param timeOfFailure: The actual time of failure
      * @param toFailList:    List of VMs to fail
      */
-    public void setFailureParameters(List<VmMkg> vmlist, int numberOfVms, int delayType, double timeOfFailure, List<VmMkg> toFailList) {
+    public void setFailureParameters(
+            List<VmMkg> vmlist,
+            int numberOfVms,
+            int delayType,
+            double timeOfFailure,
+            List<VmMkg> toFailList
+    ) {
         switch (numberOfVms) {
             case FailureParameters.FAIL_SINGLE_VM:
                 /*
-                 * Fail any single random VM
+                 * Fail any single VM
                  */
                 VmMkg vmToFail;
-                /** If user has not specified which VM to Fail */
+                /* If user has not specified which VM to Fail */
                 if (toFailList == null) {
                     //Randomly select a VM to Fail
                     Random rand = new Random();
                     vmToFail = vmlist.get(rand.nextInt(vmlist.size()));
                 }
-                /** If user has specified which VM to Fail */
+                /* If user has specified which VM to Fail */
                 else {
                     //choose first Vm from toFailList
                     vmToFail = toFailList.get(0);
@@ -926,7 +998,7 @@ public class DatacenterMkg extends Datacenter {
                 /*
                  * Fail multiple VMs
                  */
-                /**Vm List to Fail is not specified */
+                /* Vm List to Fail is not specified */
                 if (toFailList == null) {
                     //Randomly select number of VMs to Fail
                     Random num = new Random();
@@ -938,7 +1010,7 @@ public class DatacenterMkg extends Datacenter {
                         toFail.add(vmFail);
                     }
                 }
-                /** Vm List to Fail is specified */
+                /* Vm List to Fail is specified */
                 else {
                     //If Number of Vms to Fail is greater than Vm list Size
                     if (toFailList.size() > vmlist.size()) {
