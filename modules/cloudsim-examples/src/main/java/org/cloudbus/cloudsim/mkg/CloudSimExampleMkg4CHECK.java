@@ -42,16 +42,16 @@ public class CloudSimExampleMkg4CHECK {
      */
     private static List<VmMkg> vmlist;
 
-    private static List<VmMkg> createVM(int userId, int vmCount, int idShift) {
+    private static List<VmMkg> createVMs(int userId, int vmCount, int idShift) {
         //Creates a container to store VMs. This list is passed to the broker later
         LinkedList<VmMkg> resultVmList = new LinkedList<>();
         Random random = new Random();
 
         //VM Parameters
         long size = 1000; //image size (MB)
-        int ram = 1000; //vm memory (MB)
+        int ram = 1024; //vm memory (MB)
         int mips = 360;
-        long bw = random.nextInt(400);
+        long bw = 300;
         int pesNumber = 1; //number of cpus
         String vmm = "Xen"; //VMM name
 
@@ -147,7 +147,7 @@ public class CloudSimExampleMkg4CHECK {
 
 
             // Fourth step: Create VMs and Cloudlets and send them to broker
-            vmlist = createVM(brokerId, 30, 0); //creating 5 vms
+            vmlist = createVMs(brokerId, 30, 0); //creating 5 vms
             cloudletList = createCloudlet(brokerId, 300, 0); // creating 300 cloudlets
             initCSVFiles();
             broker.submitVmList(vmlist);
@@ -217,9 +217,9 @@ public class CloudSimExampleMkg4CHECK {
 
             Log.printLine("Fault Injection Time = " + FailureParameters.FALT_INJECTION_TIME);
             if (ConstsMkg.DETECTION_ALGORITHM == 1) {
-                Log.printLine("Fault Detection Time(Algorithm 1) = " + FailureParameters.FALT_DETECTION_TIME);
+                Log.printLine("Fault Detection Time(Algorithm 1) = " + FailureParameters.FAULT_DETECTION_TIME);
             } else if (ConstsMkg.DETECTION_ALGORITHM == 2) {
-                Log.printLine("Fault Detection Time(Algorithm 2) = " + FailureParameters.FALT_DETECTION_TIME);
+                Log.printLine("Fault Detection Time(Algorithm 2) = " + FailureParameters.FAULT_DETECTION_TIME);
             }
             Log.printLine("Number of Times Monitor was called = " + FailureParameters.NO_OF_MONITOR_CALLS);
             Log.printLine("CloudSimExamplemkg4 finished!");
@@ -234,7 +234,7 @@ public class CloudSimExampleMkg4CHECK {
                 //	f.append(DatacenterMkg.RFF_result + ","+DatacenterMkg.BF_result +","+DatacenterMkg.FF_result+ ","+ FailureParameters.NO_OF_MONITOR_CALLS+"," + e_edg+","+e_aggr+","+e_core +"\n");
                 //	f.append(DatacenterMkg.RFF_result + ","+DatacenterMkg.BF_result +","+DatacenterMkg.FF_result+ ","+ FailureParameters.NO_OF_MONITOR_CALLS+"," + e_edg+","+e_aggr+","+e_core +","+"CHECK"+"\n");
                 f.append(DatacenterMkg.RFF_result + "," + DatacenterMkg.BF_result + "," + DatacenterMkg.FF_result + "," + FailureParameters.NO_OF_MONITOR_CALLS + "," + e_edg + "," + e_aggr + "," + e_core
-                        + "," + "CHECK" + FailureParameters.FALT_INJECTION_TIME + "," + FailureParameters.FALT_DETECTION_TIME + "," + "\n");
+                        + "," + "CHECK" + FailureParameters.FALT_INJECTION_TIME + "," + FailureParameters.FAULT_DETECTION_TIME + "," + "\n");
                 f.close();
             }
 
@@ -325,21 +325,21 @@ public class CloudSimExampleMkg4CHECK {
 
     }
 
-    private static List<Host> createHost(List<Host> hostList, int hostCount) {
+    private static List<Host> createHosts(int hostCount) {
+        List<Host> hostList = new ArrayList<>();
         // 2. A Machine contains one or more PEs or CPUs/Cores.
         // In this example, it will have only one core.
-        List<Pe> peList = new ArrayList<>();
 
         int mips = 3720;
-
-        // 3. Create PEs and add these into a list.
-        peList.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
-
-        // 4. Create Host with its id and list of PEs and add them to the list of machines
         int ram = 2048; // host memory (MB)
         long storage = 1000000; // host storage
         int bw = 10000;
 
+        // 3. Create PEs and add these into a list.
+        List<Pe> peList = new ArrayList<>();
+        peList.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
+
+        // 4. Create Host with its id and list of PEs and add them to the list of machines
         System.out.print("Create Host Layer..........");
         for (int x = 1; x <= hostCount; x++) {
             String PREFIX = "400";
@@ -370,13 +370,16 @@ public class CloudSimExampleMkg4CHECK {
                 System.out.println("\n\n\n ......mips value..host........" + mips);
             }
 
-
             hostList.add(
-                    new Host(Integer.parseInt(hostListIds.get(x)), new RamProvisionerSimple(ram),
-                            new BwProvisionerSimple(bw), storage, peList, new VmSchedulerTimeShared(peList))); // This
-            // is
-            // our
-            // machine
+                    new Host(
+                            Integer.parseInt(hostListIds.get(x)),
+                            new RamProvisionerSimple(ram),
+                            new BwProvisionerSimple(bw),
+                            storage,
+                            peList,
+                            new VmSchedulerTimeShared(peList)
+                    )
+            );
         }
 
         return hostList;
@@ -400,7 +403,7 @@ public class CloudSimExampleMkg4CHECK {
         createCoreLayerSwitch(iCoreLayerSwitch);
         createAggLayerSwitch(iAggLayerSwitch);
         createEdgeLayerSwitch(iEdgeLayerSwitch);
-        List<Host> hostList = createHost(new ArrayList<>(), iHost);
+        List<Host> hostList = createHosts(iHost);
 
         System.out.println("\n\n Got Host List.........." + hostList);
 
@@ -497,9 +500,6 @@ public class CloudSimExampleMkg4CHECK {
      * @param list list of Cloudlets
      */
     private static void printCloudletList(List<Cloudlet> list) {
-        int size = list.size();
-        Cloudlet cloudlet;
-
         String indent = "    ";
         Log.printLine();
         Log.printLine("========== OUTPUT ==========");
@@ -507,8 +507,7 @@ public class CloudSimExampleMkg4CHECK {
                 "Data center ID" + indent + "VM ID" + indent + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
 
         DecimalFormat dft = new DecimalFormat("###.##");
-        for (Cloudlet value : list) {
-            cloudlet = value;
+        for (Cloudlet cloudlet : list) {
             Log.print(indent + cloudlet.getCloudletId() + indent + indent);
 
             if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS) {

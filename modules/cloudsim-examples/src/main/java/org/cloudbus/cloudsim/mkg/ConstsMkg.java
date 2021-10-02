@@ -28,7 +28,7 @@ public class ConstsMkg {
      * =1 for detection Algo 1
      * =2 for detection Algo 2
      */
-    public final static int DETECTION_ALGORITHM = 1;
+    public final static int DETECTION_ALGORITHM = 3;
     public final static int number_of_host_in_one_pod = 4;
     public final static int number_of_host_in_one_subpod = 2;
     private static final boolean False = false;
