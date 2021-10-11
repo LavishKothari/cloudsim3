@@ -640,7 +640,7 @@ public class DatacenterMkg extends Datacenter {
             );
             if (!hostIdentifiedByFuzzyLogic && risk > FuzzyLogicConstants.RISK_THRESHOLD_FOR_FAULT_DETECTION) {
                 for (Vm vmMkg : host.getVmList()) {
-                    List<ResCloudletMkg> failedCloudlets = ((CloudletSchedulerMkg) vmMkg.getCloudletScheduler()).getCloudletFailedList();
+                    List<ResCloudletMkg> failedCloudlets = ((CloudletSchedulerMkg) vmMkg.getCloudletScheduler()).getCloudletExecList();
                     for (ResCloudletMkg res : failedCloudlets) {
                         failedDetectedCloudlets.add(res.getCloudlet());
                     }
@@ -651,6 +651,7 @@ public class DatacenterMkg extends Datacenter {
                 }
             }
         }
+        FailureParameters.NO_OF_MONITOR_CALLS = numberOfTimesMonitorWasCalled;
     }
 
     private void findSuspectsByAlgo1And2() {
